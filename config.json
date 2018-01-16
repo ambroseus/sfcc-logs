@@ -1,0 +1,11 @@
+{
+  "default_webdav_server": "production-store-thelevelgroup.demandware.net",
+  "default_webdav_username": "e.samonenko",
+  "default_webdav_password": "Prod2117!",
+  "default_log_dir": "/mnt/d/prodlogs",
+  "default_log_date": "2018-01-14",
+  "default_email_user": "",
+  "default_email_password": "",
+  "default_email_recipient": "",
+  "default_max_errors":"10"
+}
