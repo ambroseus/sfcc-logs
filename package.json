@@ -4,7 +4,6 @@
   "description": "parse and analyze sfcc logs",
   "main": "logs.js",
   "dependencies": {
-    "n-readlines": "^0.2.8"
   },
   "devDependencies": {},
   "scripts": {
