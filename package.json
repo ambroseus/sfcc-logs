@@ -1,0 +1,23 @@
+{
+  "name": "sfcc-logs",
+  "version": "1.0.0",
+  "description": "parse and analyze sfcc logs",
+  "main": "logs.js",
+  "dependencies": {
+    "n-readlines": "^0.2.8"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ambroseus/sfcc-logs.git"
+  },
+  "author": "Eugene Samonenko",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ambroseus/sfcc-logs/issues"
+  },
+  "homepage": "https://github.com/ambroseus/sfcc-logs#readme"
+}
