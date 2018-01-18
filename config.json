@@ -1,4 +1,4 @@
 {
-  "logsdir": "d:/logs",
-  "maxerrors": "1"
+  "LOGSDIR": "d:/logs",
+  "MAXERRORS": "1"
 }

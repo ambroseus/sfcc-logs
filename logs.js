@@ -1,25 +1,30 @@
 'use strict';
 
-const CONFIG = require('./config.json');
-
-const fs   = require('fs');
+const fs = require('fs');
 const path = require('path');
-const hash = require('crypto').createHash;
-const md5  = x => hash('md5').update(x).digest('hex');
+const CONFIG = require('./config.json');
 const Liner = require('./liner.js');
-const getLiner = file => new Liner(path.join(CONFIG.logsdir, file));
+const getLiner = file => new Liner(path.join(CONFIG.LOGSDIR, file));
+const isLog = file => path.extname(file) === '.log';
 
-let STRACE = {};
-let ERRORS = {};
+const RE = {
+	TIMESTAMP : /^\[.+GMT\]\s(.+)/,
+	SITENAME  : /^Sites-(.*)-?Site$/,
+	SESSION   : /^(.+?)\s+\d{17,20}\s+/,
+	STRACE    : /^Stack trace <(ref:)?(\w+)>$/
+};
 
-console.log(CONFIG.logsdir);
+const STRACE = {};
+const ERRORS = {};
+const logs = fs.readdirSync(CONFIG.LOGSDIR);
 
-const logs = fs.readdirSync(CONFIG.logsdir);
-logs.filter(file => path.extname(file) !== 'log').map(process);
+console.log(CONFIG.LOGSDIR);
+console.log(logs);
 
-console.log(STRACE);
+logs.filter(isLog).map(process);
 
-console.log(ERRORS);
+//console.log(STRACE);
+//console.log(ERRORS);
 
 //    fs.writeFileSync(require("path").join(options.errorlog_dir, fileName), fileData);
 
@@ -29,46 +34,40 @@ function process(log) {
 	let line = liner.next();
     let site, pipe, msg;
 
-	while (line) {
-
-		const found = line.match(/^\[.+GMT\]\s(.+)/);
+	while (line !== null) {
+		const found = line.match(RE.TIMESTAMP);
 		if (found) {
-
-	console.log(line);
-
-		const parts = found[1].split('|');
+			const parts = found[1].split('|');
 			site = parts && parts[2];
 			if (site) {
 				pipe = parts[3];
-				site = site.replace(/^Sites-/, '').replace(/-?Site$/, '');
-				msg = parts[5] && parts[5].replace(/^(.+?)\s+\d{17,20}\s+/, '') || '';
+				site = site.replace(RE.SITENAME, '$1');
+				msg = parts[5] && parts[5].replace(RE.SESSION, '') || '';
 			}
-			line = liner.next();;
+			line = liner.next();
 		}
 		else {
-	console.log(line);
-
-		const found = line.match(/^Stack trace <(ref:)?(\w+)>$/);
+			const found = line.match(RE.STRACE);
 			if ( found && site ) {
 				const key = found[2];
 				STRACE[key] = liner.next();
 				line = liner.next();
-				if ( !/^\[.+GMT\]/.test(line) ) STRACE[key] += line;
+				if ( !RE.TIMESTAMP.test(line) ) STRACE[key] += line;
 
 				if ( !(key in ERRORS) ) ERRORS[key] = {};
-				if ( !('count' in ERRORS[key]) ) ERRORS[key].count = 0;
+				if ( !('total' in ERRORS[key]) ) ERRORS[key].total = 0;
 				if ( !('sites' in ERRORS[key]) ) ERRORS[key].sites = {};
 
-				if ( ERRORS[key].count === 0 ) {
+				if ( ERRORS[key].total === 0 ) {
 					ERRORS[key].msg = msg;
 					ERRORS[key].pipe = pipe;
 				}
-				ERRORS[key].count++;
-				ERRORS[key].sites[site] = true;
+				ERRORS[key].total++;
+				
+				const count = ERRORS[key].sites[site];
+				ERRORS[key].sites[site] = count ? count + 1 : 1;
 			}
-			else {
-				line = liner.next();
-			}
+			else line = liner.next();
 		}
 	}
 	return log;

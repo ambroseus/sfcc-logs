@@ -1,6 +1,6 @@
 'use strict';
 
-var fs = require('fs');
+const fs = require('fs');
 
 function LineByLine(file, options) {
     options = options || {};
@@ -29,10 +29,10 @@ function LineByLine(file, options) {
 }
 
 LineByLine.prototype._searchInBuffer = function(buffer, hexNeedle) {
-    var found = -1;
+    let found = -1;
 
-    for (var i = 0; i <= buffer.length; i++) {
-        var b_byte = buffer[i];
+    for (let i = 0; i <= buffer.length; i++) {
+        let b_byte = buffer[i];
         if (b_byte === hexNeedle) {
             found = i;
             break;
@@ -59,13 +59,13 @@ LineByLine.prototype.reset = function() {
 };
 
 LineByLine.prototype._extractLines = function(buffer) {
-    var line;
-    var lines = [];
-    var bufferPosition = 0;
+    let line;
+    let lines = [];
+    let bufferPosition = 0;
 
-    var lastNewLineBufferPosition = 0;
+    let lastNewLineBufferPosition = 0;
     while (true) {
-        var bufferPositionValue = buffer[bufferPosition++];
+        let bufferPositionValue = buffer[bufferPosition++];
 
         if (bufferPositionValue === this.newLineCharacter) {
             line = buffer.slice(lastNewLineBufferPosition, bufferPosition);
@@ -76,7 +76,7 @@ LineByLine.prototype._extractLines = function(buffer) {
         }
     }
 
-    var leftovers = buffer.slice(lastNewLineBufferPosition, bufferPosition);
+    let leftovers = buffer.slice(lastNewLineBufferPosition, bufferPosition);
     if (leftovers.length) {
         lines.push(leftovers);
     }
@@ -85,12 +85,12 @@ LineByLine.prototype._extractLines = function(buffer) {
 };
 
 LineByLine.prototype._readChunk = function(lineLeftovers) {
-    var totalBytesRead = 0;
+    let totalBytesRead = 0;
 
-    var bytesRead;
-    var buffers = [];
+    let bytesRead;
+    let buffers = [];
     do {
-        var readBuffer = new Buffer(this.options.readChunk);
+        let readBuffer = new Buffer(this.options.readChunk);
 
         bytesRead = fs.readSync(this.fd, readBuffer, 0, this.options.readChunk, this.fdPosition);
         totalBytesRead = totalBytesRead + bytesRead;
@@ -100,7 +100,7 @@ LineByLine.prototype._readChunk = function(lineLeftovers) {
         buffers.push(readBuffer);
     } while (bytesRead && this._searchInBuffer(buffers[buffers.length-1], this.options.newLineCharacter) === -1);
 
-    var bufferData = Buffer.concat(buffers);
+    let bufferData = Buffer.concat(buffers);
 
     if (bytesRead < this.options.readChunk) {
         this.eofReached = true;
@@ -119,13 +119,13 @@ LineByLine.prototype._readChunk = function(lineLeftovers) {
 };
 
 LineByLine.prototype.next = function() {
-    var line = false;
+    let line = null;
 
     if (this.eofReached && this.linesCache.length === 0) {
         return line;
     }
 
-    var bytesRead;
+    let bytesRead;
 
     if (!this.linesCache.length) {
         bytesRead = this._readChunk();
@@ -134,7 +134,7 @@ LineByLine.prototype.next = function() {
     if (this.linesCache.length) {
         line = this.linesCache.shift();
 
-        var lastLineCharacter = line[line.length-1];
+        let lastLineCharacter = line[line.length-1];
 
         if (lastLineCharacter !== 0x0a) {
             bytesRead = this._readChunk(line);
@@ -154,7 +154,7 @@ LineByLine.prototype.next = function() {
         line = line.slice(0, line.length-1);
     }
 
-    return (line && line.toString() || '');
+    return line && line.toString() || '';
 };
 
 module.exports = LineByLine;
