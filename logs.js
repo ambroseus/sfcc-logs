@@ -22,21 +22,19 @@ const ERRORS = {};
 const logs = fs.readdirSync(CONFIG.LOGSDIR);
 
 console.log(CONFIG.LOGSDIR);
-console.log(logs);
 logs.filter(isLog).map(strace).map(process);
 
-//console.log(STRACE);
+const STATS = Object.keys(ERRORS)
+	.filter( key => ERRORS[key].total > CONFIG.MAXERRORS )
+	.sort( (a,b) => ERRORS[b].total - ERRORS[a].total )
+	.map( key => ERRORS[key] );
 
-Object.keys(ERRORS)
-	.filter( a => ERRORS[a].total > CONFIG.MAXERRORS )
-	.sort( (a,b) => ERRORS[a].total < ERRORS[b].total )
-	.map(stats);
+fs.writeFileSync( path.join(CONFIG.LOGSDIR, CONFIG.SUMMARY ), summary(STATS) );
+console.log('done.');
 
-
-//    fs.writeFileSync(require("path").join(options.errorlog_dir, fileName), fileData);
 
 function strace(log) {
-  	console.log(`stacktrace: ${log}`);
+  	console.log(`strace: ${log}`);
   	let liner = getLiner(log);
  	let line = liner.next();
   
@@ -73,7 +71,7 @@ function process(log) {
 		else {
 			const found = line.match(RE.STRACE);
 			if ( found && site ) {
-				const desc = `${msg}\n${STRACE[found[2]]}`;
+				const desc = `${msg} ${STRACE[found[2]]}`;
 				const key = md5(desc);
 
 				if ( !(key in ERRORS) ) ERRORS[key] = {};
@@ -95,7 +93,10 @@ function process(log) {
 	return log;
 }
 
-function stats(key) {
-	console.log(ERRORS[key]);
-	return key;
+function summary(errors) {
+	const sort = sites => Object.keys(sites).sort( (a,b) => sites[b] - sites[a] ).map( site => `${sites[site]}:${site}` ).join('<br/>');
+	const header = '<tr><th>total</th><th>sites</th><th>pipeline</th><th>error</th></tr>';
+	const body = errors.map(err => `<tr><td>${err.total}</td><td>${sort(err.sites)}</td><td>${err.pipe}</td><td>${err.desc}</td></tr>\n`).join('');
+
+	return `<table cellpadding='5' border='1'><tbody>${header}${body}</tbody></table>\n`;
 }

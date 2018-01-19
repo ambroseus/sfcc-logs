@@ -1,4 +1,5 @@
 {
-  "LOGSDIR": "d:/logs",
-  "MAXERRORS": "100"
+  "LOGSDIR": "/logs",
+  "SUMMARY": "summary.html",
+  "MAXERRORS": 100
 }
