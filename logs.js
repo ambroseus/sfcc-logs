@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const hash = require('crypto').createHash;
-const md5  = x => hash('md5').update(x).digest('hex');
+const md5 = x => hash('md5').update(x).digest('hex');
 
 const CONFIG = require('./config.json');
 const Liner = require('./liner.js');
@@ -14,26 +14,26 @@ const RE = {
 	STAMP   : /^\[.+GMT\]\s(.+)/,
 	SITES   : /Sites-(.*?)-?Site/,
 	SESSION : /^(.+?)\s+\d{17,20}\s+/,
-	STRACE  : /^Stack trace <(ref:)?(\w+)>/
+	STRACE  : /^Stack trace <(ref:)?(\w+)>/,
+	ERROR   : /ERROR\sPipelineCallServlet/
 };
 
-const STRACE = {};
-const ERRORS = {};
+const strace = {};
+const errors = {};
 const logs = fs.readdirSync(CONFIG.LOGSDIR);
 
 console.log(CONFIG.LOGSDIR);
-logs.filter(isLog).map(strace).map(process);
+logs.filter(isLog).map(stackrace).map(process);
 
-const STATS = Object.keys(ERRORS)
-	.filter( key => ERRORS[key].total > CONFIG.MAXERRORS )
-	.sort( (a,b) => ERRORS[b].total - ERRORS[a].total )
-	.map( key => ERRORS[key] );
+const keys = Object.keys(errors)
+	.filter( key => errors[key].total > CONFIG.MAXERRORS )
+	.sort( (a,b) => errors[b].total - errors[a].total );
 
-fs.writeFileSync( path.join(CONFIG.LOGSDIR, CONFIG.SUMMARY ), summary(STATS) );
+fs.writeFileSync( path.join(CONFIG.LOGSDIR, CONFIG.SUMMARY), summary_html(keys) );
 console.log('done.');
 
 
-function strace(log) {
+function stackrace(log) {
   	console.log(`strace: ${log}`);
   	let liner = getLiner(log);
  	let line = liner.next();
@@ -42,9 +42,9 @@ function strace(log) {
   		const found = line.match(RE.STRACE);
   		if ( found && !found[1] ) {
   		    const key = found[2];
-  			STRACE[key] = liner.next();
+  			strace[key] = liner.next();
 			line = liner.next();
-  			if ( !RE.STAMP.test(line) ) STRACE[key] += line;
+  			if ( !RE.STAMP.test(line) ) strace[key] += line;
   		}
 		line = liner.next();
  	}
@@ -61,7 +61,7 @@ function process(log) {
 		const found = line.match(RE.STAMP);
 		if (found) {
 			const parts = found[1].split('|');
-			site = parts && parts[0] === 'ERROR PipelineCallServlet' && parts[2];
+			site = parts && RE.ERROR.test(parts[0]) && parts[2];
 			if (site) {
 				pipe = parts[3];
 				site = site.replace(RE.SITES, '$1');
@@ -71,21 +71,24 @@ function process(log) {
 		else {
 			const found = line.match(RE.STRACE);
 			if ( found && site ) {
-				const desc = `${msg} ${STRACE[found[2]]}`;
-				const key = md5(desc);
+				const key = md5(msg + strace[found[2]]);
+				let count;
 
-				if ( !(key in ERRORS) ) ERRORS[key] = {};
-				if ( !('total' in ERRORS[key]) ) ERRORS[key].total = 0;
-				if ( !('sites' in ERRORS[key]) ) ERRORS[key].sites = {};
-
-				if ( ERRORS[key].total === 0 ) {
-					ERRORS[key].desc = desc;
-					ERRORS[key].pipe = pipe;
+				if ( !(key in errors) ) {
+					errors[key] = {
+						'total': 0,
+						'sites': {},
+						'pipes': {},
+						'desc': strace[found[2]],
+						'msg': msg
+					};
 				}
-				ERRORS[key].total++;
-				
-				const count = ERRORS[key].sites[site];
-				ERRORS[key].sites[site] = count ? count + 1 : 1;
+				errors[key].total++;
+
+				count = errors[key].sites[site];
+				errors[key].sites[site] = count ? count + 1 : 1;
+				count = errors[key].pipes[pipe];
+				errors[key].pipes[pipe] = count ? count + 1 : 1;
 			}
 		}
 		line = liner.next();
@@ -93,10 +96,11 @@ function process(log) {
 	return log;
 }
 
-function summary(errors) {
-	const sort = sites => Object.keys(sites).sort( (a,b) => sites[b] - sites[a] ).map( site => `${sites[site]}:${site}` ).join('<br/>');
-	const header = '<tr><th>total</th><th>sites</th><th>pipeline</th><th>error</th></tr>';
-	const body = errors.map(err => `<tr><td>${err.total}</td><td>${sort(err.sites)}</td><td>${err.pipe}</td><td>${err.desc}</td></tr>\n`).join('');
-
-	return `<table cellpadding='5' border='1'><tbody>${header}${body}</tbody></table>\n`;
+function summary_html(keys) {
+	const head = '<tr><th>total</th><th>sites</th><th>pipelines</th><th>error</th></tr>';
+	const sort = hash => Object.keys(hash).sort( (a,b) => hash[b] - hash[a] ).map( key => `${hash[key]}:${key}` ).join('<br/>');
+	const row  = e => `<tr><td>${e.total}</td><td nowrap>${sort(e.sites)}</td><td nowrap>${sort(e.pipes)}</td><td>${e.msg}<br/>${e.desc}</td></tr>`;
+	const body = keys.map( key => errors[key] ).map(row);
+	return `<table cellpadding='5' border='1'><thead>${head}</thead>\n<tbody valign=top>${body.join("\n")}</tbody></table>`;
 }
+
