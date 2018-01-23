@@ -82,18 +82,18 @@ function analyze(log) {
 }
 
 function analyzeLogs(options) {
-	fs.readdirSync(options.LOGSDIR)
+	fs.readdirSync(options.logsDir)
 		.filter( file => path.extname(file) === '.log' )
-		.map( file => path.join(options.LOGSDIR, file) )
+		.map( file => path.join(options.logsDir, file) )
 		.map(trace).map(analyze);
 
 	return Object.keys(errors)
-		.filter( key => errors[key].total > options.MAXERRORS )
+		.filter( key => errors[key].total > options.maxErrors )
 		.sort( (a,b) => errors[b].total - errors[a].total )
 		.map(key => errors[key]);
 }	
 
 module.exports = {
-	analyzeLogs: analyzeLogs
+	logs: analyzeLogs
 }
 

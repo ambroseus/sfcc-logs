@@ -1,5 +1,4 @@
 {
-  "LOGSDIR": "/mnt/d/logs",
-  "SUMMARY": "summary.html",
-  "MAXERRORS": 100
+  "logsDir": "/logs",
+  "maxErrors": 100
 }

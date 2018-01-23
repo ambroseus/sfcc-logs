@@ -1,18 +1,20 @@
 'use strict';
 /*
-errors: {
-	total: Number
-	sites: {
-		siteName: Number
+errors: [
+	{
+		total: Number
+		sites: {
+			siteName: Number
+		}
+		pipes: {
+			pipeName: Number
+		}
+		msg: String
+		desc: String
 	}
-	pipes: {
-		pipeName: Number
-	}
-	msg: String
-	desc: String
-}
+]
 */
-function summaryHtml(errors) {
+function asHtml(errors) {
 	const sortDesc = obj => Object.keys(obj)
 		.sort( (a,b) => obj[b] - obj[a] )
 		.map( key => `<b>${obj[key]}</b> ${key}` )
@@ -46,7 +48,12 @@ function summaryHtml(errors) {
 	</html>`;
 }
 
+function asJson(obj) {
+	return JSON.stringify(obj, null, 2);
+}
+
 module.exports = {
-	summaryHtml: summaryHtml
+	html: asHtml,
+	json: asJson
 }
 
