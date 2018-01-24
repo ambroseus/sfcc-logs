@@ -1,13 +1,16 @@
 'use strict';
 
-const fs = require('fs');
-const path = require('path');
-const hash = require('crypto').createHash;
-const md5 = x => hash('md5').update(x).digest('hex');
-const Liner = require('./liner.js');
+module.exports = { analyzeLogs }
 
-const strace = {};
-const errors = {};
+let _strace;
+let _errors;
+
+function analyzeLogs(logs) {
+	_strace = {};
+	_errors = {};
+	logs.map(trace).map(analyze);
+	return _errors;
+}
 
 const RE = {
 	STAMP   : /^\[.+GMT\]\s(.+)/,
@@ -15,7 +18,9 @@ const RE = {
 	SESSION : /^(.+?)\s+\d{17,20}\s*\-?\s*/,
 	STRACE  : /^Stack trace <(ref:)?(\w+)>/,
 	ERROR   : /ERROR\sPipelineCallServlet/
-};
+}
+
+const Liner = require('./liner.js');
 
 function trace(log) {
   	console.log(`trace: ${log}`);
@@ -26,14 +31,16 @@ function trace(log) {
   		const found = line.match(RE.STRACE);
   		if ( found && !found[1] ) {
   		    const key = found[2];
-  			strace[key] = liner.next();
+  			_strace[key] = liner.next();
 			line = liner.next();
-  			if ( !RE.STAMP.test(line) ) strace[key] += line;
+  			if ( !RE.STAMP.test(line) ) _strace[key] += line;
   		}
 		line = liner.next();
  	}
   	return log;
 }
+
+const hash = require('crypto').createHash;
 
 function analyze(log) {
   	console.log(`analyze: ${log}`);
@@ -55,12 +62,12 @@ function analyze(log) {
 		else {
 			const found = line.match(RE.STRACE);
 			if ( found && site ) {
-				const desc = strace[found[2]];
-				const key = md5(msg + desc);
+				const desc = _strace[found[2]];
+				const key = hash('md5').update(desc).digest('hex');;
 				let count;
 
-				if ( !(key in errors) ) {
-					errors[key] = {
+				if ( !(key in _errors) ) {
+					_errors[key] = {
 						'total': 0,
 						'sites': {},
 						'pipes': {},
@@ -68,32 +75,15 @@ function analyze(log) {
 						'msg': msg
 					};
 				}
-				errors[key].total++;
+				_errors[key].total++;
 
-				count = errors[key].sites[site];
-				errors[key].sites[site] = count ? count + 1 : 1;
-				count = errors[key].pipes[pipe];
-				errors[key].pipes[pipe] = count ? count + 1 : 1;
+				count = _errors[key].sites[site];
+				_errors[key].sites[site] = count ? count + 1 : 1;
+				count = _errors[key].pipes[pipe];
+				_errors[key].pipes[pipe] = count ? count + 1 : 1;
 			}
 		}
 		line = liner.next();
 	}
 	return log;
 }
-
-function analyzeLogs(options) {
-	fs.readdirSync(options.logsDir)
-		.filter( file => path.extname(file) === '.log' )
-		.map( file => path.join(options.logsDir, file) )
-		.map(trace).map(analyze);
-
-	return Object.keys(errors)
-		.filter( key => errors[key].total > options.maxErrors )
-		.sort( (a,b) => errors[b].total - errors[a].total )
-		.map(key => errors[key]);
-}	
-
-module.exports = {
-	logs: analyzeLogs
-}
-
