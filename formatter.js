@@ -1,4 +1,14 @@
 'use strict';
+
+module.exports = {
+	html: asHtml,
+	json: asJson
+}
+
+function asJson(obj) {
+	return JSON.stringify(obj, null, 2);
+}
+
 /*
 errors: [
 	{
@@ -48,12 +58,4 @@ function asHtml(errors) {
 	</html>`;
 }
 
-function asJson(obj) {
-	return JSON.stringify(obj, null, 2);
-}
-
-module.exports = {
-	html: asHtml,
-	json: asJson
-}
 

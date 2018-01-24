@@ -1,5 +1,7 @@
 'use strict';
 
+module.exports = LineByLine;
+
 const fs = require('fs');
 
 function LineByLine(file, options) {
@@ -157,4 +159,3 @@ LineByLine.prototype.next = function() {
     return line && line.toString() || '';
 };
 
-module.exports = LineByLine;
