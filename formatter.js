@@ -1,14 +1,6 @@
 'use strict';
 
-module.exports = {
-	html: asHtml,
-	json: asJson
-}
-
-function asJson(obj) {
-	return JSON.stringify(obj, null, 2);
-}
-
+module.exports = { summaryHtml }
 /*
 errors: [
 	{
@@ -24,7 +16,7 @@ errors: [
 	}
 ]
 */
-function asHtml(errors) {
+function summaryHtml(errors) {
 	const sortDesc = obj => Object.keys(obj)
 		.sort( (a,b) => obj[b] - obj[a] )
 		.map( key => `<b>${obj[key]}</b> ${key}` )

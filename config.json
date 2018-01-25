@@ -1,4 +1,5 @@
 {
   "LOGSDIR": "/logs",
+  "SUMMARY": "summary",
   "MAXERRORS": 100
 }

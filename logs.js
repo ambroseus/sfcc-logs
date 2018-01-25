@@ -4,26 +4,22 @@ const fs = require('fs');
 const path = require('path');
 const options = require('./config.json');
 const { analyzeLogs } = require('./analyzer.js');
-const formatter = require('./formatter.js');
+const { summaryHtml } = require('./formatter.js');
 
-function writeSummaryFile(errors, format) {
-	const file = path.join(options.LOGSDIR, `summary.${format}`);
-	fs.writeFileSync( file, formatter[format](errors) );
-	console.log(`output: ${file}`);
-}
+const date = process.argv[2] || '';
 
 const logs = fs.readdirSync(options.LOGSDIR)
-				.filter( file => path.extname(file) === '.log' )
-				.map( file => path.join(options.LOGSDIR, file) );
+		.filter( file => path.extname(file) === '.log' && (!date || file.indexOf(date) > 0) )
+		.map( file => path.join(options.LOGSDIR, file) );
 
 const errors = analyzeLogs(logs);
-writeSummaryFile(errors, 'json');
-
 const topErrors = Object.keys(errors)
-				.filter( key => errors[key].total > options.MAXERRORS )
-				.sort( (a,b) => errors[b].total - errors[a].total )
-				.map(key => errors[key]);
+		.filter( key => errors[key].total > options.MAXERRORS )
+		.sort( (a,b) => errors[b].total - errors[a].total )
+		.map(key => errors[key]);
 
-writeSummaryFile(topErrors, 'html');
+const file = path.join(options.LOGSDIR, `${options.SUMMARY}-${date}.html`);
+console.log(`output: ${file}`);
+fs.writeFileSync( file, summaryHtml(topErrors) );
 console.log('done.');
 
