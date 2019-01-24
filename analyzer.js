@@ -62,7 +62,7 @@ function analyze(log) {
 		else {
 			const found = line.match(RE.STRACE);
 			if ( found && site ) {
-				const desc = _strace[found[2]];
+				const desc = _strace[found[2]] || "no-trace-available";
 				const key = hash('md5').update(desc).digest('hex');;
 				let count;
 
